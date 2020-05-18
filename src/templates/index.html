@@ -3,27 +3,231 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>CS564: Project</title>
 <script src="https://d3js.org/d3.v4.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/queue.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script src="../static/d3-tip.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script> -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-<body>
-    !!! HELLO WORLD !!!
+<!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script> -->
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script>
+<script src="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.js"></script>
+<script src="https://mcaule.github.io/d3-timeseries/dist/create-example-data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
+<style>
+.names {
+    fill: none;
+    stroke: #fff;
+    stroke-linejoin: round;
+}
+
+/* Tooltip CSS */
+.d3-tip {
+    line-height: 1.5;
+    font-weight: 400;
+    font-family:"avenir next", Arial, sans-serif;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #FFA500;
+    border-radius: 1px;
+    pointer-events: none;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {      
+    box-sizing: border-box;
+    display: inline;
+    font-size: 8px;
+    width: 100%;
+    line-height: 1.5;
+    color: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    pointer-events: none;
+}
+
+/* Northward tooltips */
+.d3-tip.n:after {
+    content: "\25BC";
+    margin: -1px 0 0 0;
+    top: 100%;
+    left: 0;
+    text-align: center;
+}
+
+/* Eastward tooltips */
+.d3-tip.e:after {
+    content: "\25C0";
+    margin: -4px 0 0 0;
+    top: 50%;
+    left: -8px;
+}
+
+/* Southward tooltips */
+.d3-tip.s:after {
+    content: "\25B2";
+    margin: 0 0 1px 0;
+    top: -8px;
+    left: 0;
+    text-align: center;
+}
+
+/* Westward tooltips */
+.d3-tip.w:after {
+    content: "\25B6";
+    margin: -4px 0 0 -1px;
+    top: 50%;
+    left: 100%;
+}
+
+/*    
+text{
+    pointer-events:none;
+}*/
+
+.details{
+    color:white;
+}
+
+#metric-modal .metric-chart text {
+	fill: #565656;
+	font-size: 9px;
+	font-family: Helvetica, Arial, "sans serif";
+}
+
+#metric-modal .metric-chart text.no-data {
+	font-size: 16px;
+	font-weight: 100;
+	fill:#d0d0d0;
+}
+
+#metric-modal .metric-chart rect.no-data {
+	fill: #f5f5f5;
+}
+
+/* When there is data ...*/
+
+/* CB: padding to display better on bl.ocks.org */
+#metric-modal {
+	padding: 64px;
+}
+
+#metric-modal .metric-chart rect.plot-background{
+	fill: white;
+}
+
+#metric-modal .metric-chart path.line {
+	fill: none;
+	stroke: #00AA8D; /* default, changed in each theme */
+	stroke-width: 1.5px;
+	clip-path: url(#clip);
+}
+
+#metric-modal .metric-chart path.area {
+	fill: #00AA8D; /* CB default, changed in each theme */
+	opacity: 0.6;
+	clip-path: url(#clip);
+}
+
+#metric-modal .metric-chart .axis {
+	shape-rendering: crispEdges;
+}
+
+#metric-modal .metric-chart .x.axis .domain{
+	display:none;
+}
+
+#metric-modal .metric-chart .x.axis line {
+	stroke: white;
+	opacity: 0.4;
+}
+
+#metric-modal .metric-chart .context .x.axis line {
+	display: none;
+}
+
+#metric-modal .metric-chart .y.axis .domain{
+	display: none;
+}
+
+#metric-modal .metric-chart .y.axis.title{
+	font-size: 13px;
+	font-weight: 100;
+}
+
+#metric-modal .metric-chart .y.axis line {
+	stroke: #565656;
+	stroke-dasharray: 2,2;
+	stroke-opacity: 0.3;
+}
+
+#metric-modal .metric-chart .brush .extent {
+  fill-opacity: .07;
+  shape-rendering: crispEdges;
+  clip-path: url(#clip);
+}
+
+#metric-modal .metric-chart rect.pane {
+	cursor: move;
+	fill: none;
+	pointer-events: all;
+}
+/* brush handles  */
+#metric-modal .metric-chart .resize .handle {
+	fill: #555;
+}
+
+#metric-modal .metric-chart .resize .handle-mini {
+	fill: white;
+    stroke-width: 1px;
+    stroke: #555;
+}
+
+#metric-modal .metric-chart .scale_button {
+	cursor: pointer;
+}
+
+#metric-modal .metric-chart .scale_button rect {
+	fill: #eaeaea;
+}
+#metric-modal .metric-chart .scale_button:hover text {
+	fill: #417DD6;
+	transition: all 0.1s cubic-bezier(.25,.8,.25,1);
+}
+
+#metric-modal .metric-chart text#displayDates  {
+	font-weight: bold;
+}
+
+
+</style>
+  
+<body>
     <div class="container">
+        <div class="row">
+            <p class="col-md-4">Project for CSE 564: Visualization and Visual Analytics</p>
+            <p class="col-md-4">INVESTIGATING COVID19</p>
+            <p class="col-md-4">Designed By: Siva and Harshit</p>
+        </div>
+        <div class="row form-group">
+            <label class="col-md-4" align="left" for="stats">Select Stats to Display</label>
+            <select class="col-md-3 btn btn-secondary"
+                data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false" id="stats" onChange="update()">
+                <option value="Confirmed">Confirmed Cases</option>
+                <option value="Deaths">Confirmed Deaths</option>
+                <option value="Recovered">Confirmed Recovery</option>
+            </select>
+        </div>
         <div class="row">
             <div class="col-md-8" align="center" id="map_viz1"
                 style="align-items: stretch;"></div>
-            <div class="col-md-4" align="center" id="map_lat1"
+            <div class="col-md-4" align="center"
                 style="align-items: stretch;">
-                <div class="container">
-                    <div class="row">
-                        <div class="col-md-12"></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12"></div>
-                    </div>
-                </div>
+                <label align="center" id="country_name"></label>
+                <div id="map_lat1"></div>
             </div>
 
         </div>
@@ -31,6 +235,325 @@
 
 </body>
 <script>
-var 
+var format = d3.format(",");
+
+var data = {{ data.data | safe }};
+var value = {{ data.value | safe }};
+var size = {{ data.size | safe }};
+var variable = "{{ data.var | safe }}";
+var country = 'China';
+
+
+// console.log(value);
+// Set tooltips
+var tip = d3.tip()
+    .attr('class', 'd3-tip')
+    .offset([-10, 0])
+    .html(function(d) {
+        return "<strong>Country: </strong><span class='details'>" + d.properties.name + "<br></span>" + "<strong>" + variable + ":</strong><span class='details'>" + format(d.value) +"</span>";
+    })
+
+var margin = {top: 0, right: 0, bottom: 0, left: 0},
+            width = 800 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+var dom = [0,5000,10000,20000,50000,100000,200000,500000,1000000,5000000];
+
+var path = d3.geoPath();
+
+var svg = d3.select("#map_viz1")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append('g')
+            .attr('class', 'map');
+
+var projection = d3.geoMercator()
+                .scale(130)
+                .translate( [width / 2, height / 1.5]);
+
+var path = d3.geoPath().projection(projection);
+
+svg.call(tip);
+
+ready(data, value, size, dom);
+
+function ready(data, value, size, dom) {
+    var valueById = {};
+    
+    for ( let i = 0; i < size; i++ ) {
+        valueById[value[i].Country] = value[i].confirmed;
+    }
+
+    data.features.forEach(function(d) { 
+        d.Country = d.properties.name;
+        d.value = valueById[d.Country]; 
+    });
+    // console.log(value);
+    // console.log(population);
+    // console.log(data);
+    // console.log(data.features);
+
+    var color = d3.scaleThreshold()
+        .domain(dom)
+        .range(["rgb(247,251,255)", "rgb(222,235,247)", "rgb(198,219,239)", "rgb(158,202,225)", "rgb(107,174,214)", "rgb(66,146,198)","rgb(33,113,181)","rgb(8,81,156)","rgb(8,48,107)","rgb(3,19,43)"]);
+    svg.append("g")
+        .attr("class", "countries")
+        .selectAll("path")
+        .data(data.features)
+        .enter().append("path")
+        .attr("d", path)
+        .style("fill", function(d) { return color(valueById[d.Country]); })
+        .style('stroke', 'white')
+        .style('stroke-width', 1.5)
+        .style("opacity",0.8)
+        // tooltips
+            .style("stroke","white")
+            .style('stroke-width', 0.3)
+            .on('mouseover',function(d){
+            tip.show(d);
+
+            d3.select(this)
+                .style("opacity", 1)
+                .style("stroke","white")
+                .style("stroke-width",3);
+            })
+            .on('mouseout', function(d){
+                tip.hide(d);
+
+                d3.select(this)
+                    .style("opacity", 0.8)
+                    .style("stroke","white")
+                    .style("stroke-width",0.3);
+            }).on("click", function(d) {
+                country = d.properties.name;
+                d3.select("#country_name").text(function() {
+                    return country;
+                });
+                update1(country);
+            });
+
+    svg.append("path")
+        .datum(topojson.mesh(data.features, function(a, b) { return a.Country !== b.Country; }))
+        .attr("class", "names")
+        .attr("d", path);
+}
+
+function ready1(data, value, size, dom) {
+    var valueById = {};
+    
+    for ( let i = 0; i < size; i++ ) {
+        valueById[value[i].Country] = value[i].deaths;
+    }
+
+    data.features.forEach(function(d) { 
+        d.Country = d.properties.name;
+        d.value = valueById[d.Country]; 
+    });
+    // console.log(value);
+    // console.log(population);
+    // console.log(data);
+    // console.log(data.features);
+
+    var color = d3.scaleThreshold()
+        .domain(dom)
+        .range(["rgb(247,251,255)", "rgb(222,235,247)", "rgb(198,219,239)", "rgb(158,202,225)", "rgb(107,174,214)", "rgb(66,146,198)","rgb(33,113,181)","rgb(8,81,156)","rgb(8,48,107)","rgb(3,19,43)"]);
+    
+    svg.append("g")
+        .attr("class", "countries")
+        .selectAll("path")
+        .data(data.features)
+        .enter().append("path")
+        .attr("d", path)
+        .style("fill", function(d) { return color(valueById[d.Country]); })
+        .style('stroke', 'white')
+        .style('stroke-width', 1.5)
+        .style("opacity",0.8)
+        // tooltips
+            .style("stroke","white")
+            .style('stroke-width', 0.3)
+            .on('mouseover',function(d){
+            tip.show(d);
+
+            d3.select(this)
+                .style("opacity", 1)
+                .style("stroke","white")
+                .style("stroke-width",3);
+            })
+            .on('mouseout', function(d){
+                tip.hide(d);
+
+                d3.select(this)
+                    .style("opacity", 0.8)
+                    .style("stroke","white")
+                    .style("stroke-width",0.3);
+            }).on("click", function(d) {
+                country = d.properties.name;
+                d3.select("#country_name").text(function() {
+                    return country;
+                });
+                update1(country);
+            });
+
+    svg.append("path")
+        .datum(topojson.mesh(data.features, function(a, b) { return a.Country !== b.Country; }))
+        .attr("class", "names")
+        .attr("d", path);
+}
+
+function ready2(data, value, size, dom) {
+    var valueById = {};
+    
+    for ( let i = 0; i < size; i++ ) {
+        // console.log(i);
+        valueById[value[i].Country] = value[i].recovered;
+    }
+
+    data.features.forEach(function(d) { 
+        d.Country = d.properties.name;
+        d.value = valueById[d.Country]; 
+    });
+    // console.log(value);
+    // console.log(population);
+    // console.log(data);
+    // console.log(data.features);
+    var color = d3.scaleThreshold()
+        .domain(dom)
+        .range(["rgb(247,251,255)", "rgb(222,235,247)", "rgb(198,219,239)", "rgb(158,202,225)", "rgb(107,174,214)", "rgb(66,146,198)","rgb(33,113,181)","rgb(8,81,156)","rgb(8,48,107)","rgb(3,19,43)"]);
+    
+    svg.append("g")
+        .attr("class", "countries")
+        .selectAll("path")
+        .data(data.features)
+        .enter().append("path")
+        .attr("d", path)
+        .style("fill", function(d) { return color(valueById[d.Country]); })
+        .style('stroke', 'white')
+        .style('stroke-width', 1.5)
+        .style("opacity",0.8)
+        // tooltips
+            .style("stroke","white")
+            .style('stroke-width', 0.3)
+            .on('mouseover',function(d){
+            tip.show(d);
+
+            d3.select(this)
+                .style("opacity", 1)
+                .style("stroke","white")
+                .style("stroke-width",3);
+            })
+            .on('mouseout', function(d){
+                tip.hide(d);
+
+                d3.select(this)
+                    .style("opacity", 0.8)
+                    .style("stroke","white")
+                    .style("stroke-width",0.3);
+            }).on("click", function(d) {
+                country = d.properties.name;
+                d3.select("#country_name").text(function() {
+                    return country;
+                });
+                update1(country);
+            });
+
+    svg.append("path")
+        .datum(topojson.mesh(data.features, function(a, b) { return a.Country !== b.Country; }))
+        .attr("class", "names")
+        .attr("d", path);
+}
+
+function update() {
+    var new_variable = d3.select("#stats").property("value");
+    if ( new_variable != variable ) {
+        variable = new_variable;
+        svg.selectAll("*").remove().exit();
+        $.post("", {"data": variable}, function(data_received) {
+            value = JSON.parse(data_received.value);
+            size = eval(data_received.size);
+            if ( variable == 'Confirmed' ) {
+                dom = [0,5000,10000,20000,50000,100000,200000,500000,1000000,5000000];
+                ready(data, value, size, dom);
+            } else if ( variable == 'Deaths' ) {
+                dom = [0,500,1000,2000,5000,10000,20000,50000,100000,500000];
+                ready1(data, value, size, dom);
+            } else {
+                dom = [0,500,1000,2000,5000,10000,20000,50000,100000,500000];
+                ready2(data, value, size, dom);
+            }
+        });
+        
+    }
+}
+
+var optwidth = 300;
+var optheight = 300;
+
+var marginLat	= {top: 20, right: 10, bottom: 50, left: 50},
+    widthLat	= optwidth - marginLat.left - marginLat.right,
+    heightLat	= optheight - marginLat.top - marginLat.bottom;
+
+var svg1 = d3.select("#map_lat1")
+  .append("svg")
+    .attr("width", widthLat + marginLat.left + marginLat.right)
+    .attr("height", heightLat + marginLat.top + marginLat.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + marginLat.left + "," + marginLat.top + ")");
+
+function update1(country) {
+    $.post("/country", {"country":country}, function(data_received) {
+        // console.log(data_received.cases);
+        var cases = data_received.cases;
+        var deaths = data_received.deaths;
+        var recovered = data_received.recovered;
+
+        var dataset = cases;
+        if ( variable == 'Deaths') {
+            dataset = deaths;
+        } else if ( variable == 'Recovered' ) {
+            dataset = recovered;
+        }
+        svg1.selectAll("*").remove().exit();
+        dataset.forEach(function(d) {
+            d.date = d3.timeParse("%Y-%m-%d")(d.date);
+            d.value = +d.n;
+        });
+        drawTimeSeries(dataset);
+
+    });
+}
+
+
+
+function drawTimeSeries(data) {
+    // console.log(data);
+
+    // Add X axis --> it is a date format
+    var x = d3.scaleTime()
+        .domain(d3.extent(data, function(d) { return d.date; }))
+        .range([ 0, widthLat ]);
+    svg1.append("g")
+        .attr("transform", "translate(0," + heightLat + ")")
+        .call(d3.axisBottom().scale(x).ticks(5));
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+        .domain([0, d3.max(data, function(d) { return +d.value; })])
+        .range([ heightLat, 0 ]);
+    svg1.append("g")
+        .call(d3.axisLeft(y));x
+
+    // Add the line
+    svg1.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 1.5)
+        .attr("d", d3.line()
+            .x(function(d) { return x(d.date) })
+            .y(function(d) { return y(d.value) })
+        )
+}
 </script>
 </html>
