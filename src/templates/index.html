@@ -7,16 +7,21 @@
 <script src="https://d3js.org/queue.v1.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
 <script src="../static/d3-tip.js"></script>
+<script src="../static/RadarChart.js"></script>
 <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script> -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script> -->
+<!-- <link rel="stylesheet" href="https://yui-s.yahooapis.com/pure/0.5.0/pure-min.css">
+<link rel="stylesheet" href="https://rawgit.com/tpreusse/radar-chart-d3/master/src/radar-chart.css"> -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script>
 <script src="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.js"></script>
 <script src="https://mcaule.github.io/d3-timeseries/dist/create-example-data.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
+<!-- <script src="https://d3js.org/d3.v3.js"></script> -->
+<!-- <script src="https://rawgit.com/tpreusse/radar-chart-d3/master/src/radar-chart.js"></script> -->
 <style>
 .names {
     fill: none;
@@ -90,7 +95,36 @@ text{
 .details{
     color:white;
 }
-
+.toolTip {
+    pointer-events: none;
+    position: absolute;
+    display: none;
+    min-width: 50px;
+    height: auto;
+    background: none repeat scroll 0 0 #ffffff;
+    padding: 9px 14px 6px 14px;
+    border-radius: 2px;
+    text-align: center;
+    line-height: 1.3;
+    color: #5B6770;
+    box-shadow: 0px 3px 9px rgba(0, 0, 0, .15);
+}
+.toolTip:after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 12px solid white;
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    margin-left: -12px;
+}  
+.toolTip span {
+    font-weight: 500;
+    color: #081F2C;
+}
 </style>
   
 <body>
@@ -128,7 +162,11 @@ text{
         </div>
         <div class="row">
             <div class="col-md-8" id="parallel"></div>
-            <div class="col-md-4" id="country_info"></div>
+            <div class="col-md-4" align="center"
+            style="align-items: stretch;">
+                <label align="center" >Health Rank</label>
+                <div id="country_info"></div>
+            </div>
         </div>
     </div>
 
@@ -230,6 +268,7 @@ function ready(data, value, size, dom) {
                     return country + " [# Cases]";
                 });
                 update1(country);
+                update2(country);
             });
 
     svg.append("path")
@@ -292,6 +331,7 @@ function ready1(data, value, size, dom) {
                     return country + " [# Fatalities]";
                 });
                 update1(country);
+                update2(country);
             });
 
     svg.append("path")
@@ -354,6 +394,7 @@ function ready2(data, value, size, dom) {
                     return country + " [# Recoveries]";
                 });
                 update1(country);
+                update2(country);
             });
 
     svg.append("path")
@@ -385,8 +426,8 @@ function update() {
     }
 }
 
-var optwidth = 300;
-var optheight = 300;
+var optwidth = 250;
+var optheight = 250;
 
 var marginLat	= {top: 20, right: 10, bottom: 50, left: 60},
     widthLat	= optwidth - marginLat.left - marginLat.right,
@@ -399,6 +440,7 @@ var svg1 = d3.select("#map_lat1")
   .append("g")
     .attr("transform",
           "translate(" + marginLat.left + "," + marginLat.top + ")");
+
 
 function update1(country) {
     $.post("/country", {"country":country}, function(data_received) {
@@ -423,6 +465,41 @@ function update1(country) {
     });
 }
 
+function update2(country) {
+    $.post("/all_info", {"country":country}, function(data_received) {
+        console.log(data_received);
+        var data = [];
+        for ( var k in data_received ) {
+            if ( k == "pop_density" ) {
+                data.push({
+                    "area":k,
+                    "value":data_received[k]*2000
+                });
+            } else {
+                data.push({
+                    "area":k,
+                    "value":data_received[k]*100
+                });
+            }
+        }
+        radarChart(data, country);
+    });
+}
+
+
+function radarChart(d, country) {
+    // Config for the Radar chart
+    var config = {
+        w: optwidth,
+        h: optheight,
+        maxValue: 1,
+        levels: 5,
+        ExtraWidthX: 100
+    }
+    var data = Array(1);
+    data[0] = d
+    RadarChart.draw("#country_info", data, config);
+}
 
 
 function drawTimeSeries(data) {

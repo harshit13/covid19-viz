@@ -74,11 +74,22 @@ def timeSeries():
     }
     return jsonify(to_send)
 
+@app.route("/all_info", methods=["POST"])
+def all_info():
+    global country_info
+    data = country_info.loc[request.form['country']].to_dict()
+    maximums = country_info.max(axis=0).to_dict()
+    for k in data:
+        data[k] = 1.0 * data[k] / maximums[k]
+    return jsonify(data)
+
 
 if __name__ == "__main__":
     confirmed = pd.read_csv('data/world_confirmed.csv')
     deaths = pd.read_csv('data/world_deaths.csv')
     recovered = pd.read_csv('data/world_recovered.csv')
+    country_info = pd.read_csv('data/parallel_coor.csv', index_col=0)
+    # country_info['']
     confirmed_all = pd.read_csv(
         'data/time_series_covid19_confirmed_global.csv'
     )
