@@ -2,24 +2,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>CS564: Project</title>
-<script src="https://d3js.org/d3.v4.js"></script>
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<script src="https://d3js.org/queue.v1.min.js"></script>
+<!-- <script src="https://d3js.org/d3.v3.js"></script> -->
+<!-- <script src="https://d3js.org/queue.v1.min.js"></script> -->
+
+<script src="https://d3js.org/d3.v3.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
-<script src="../static/d3-tip.js"></script>
-<script src="../static/RadarChart.js"></script>
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script> -->
+<!-- <script src="../static/d3-tip.js"></script> -->
+<!-- <script src="../static/RadarChart.js"></script> -->
+<script src="../static/Radar3.js"></script>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script> -->
+<script src="https://d3js.org/d3-array.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo.v1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.6.6/d3-tip.js"></script>
+
+<!-- <script type="text/javascript" src="../static/protovis.js"></script> -->
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script> -->
+<!-- <link rel="stylesheet" href="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.css"> -->
 <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script> -->
 <!-- <link rel="stylesheet" href="https://yui-s.yahooapis.com/pure/0.5.0/pure-min.css">
 <link rel="stylesheet" href="https://rawgit.com/tpreusse/radar-chart-d3/master/src/radar-chart.css"> -->
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script>
-<script src="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.js"></script>
-<script src="https://mcaule.github.io/d3-timeseries/dist/create-example-data.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
+<!-- <script src="https://mcaule.github.io/d3-timeseries/dist/d3_timeseries.min.js"></script> -->
+<!-- <script src="https://mcaule.github.io/d3-timeseries/dist/create-example-data.js"></script> -->
 <!-- <script src="https://d3js.org/d3.v3.js"></script> -->
 <!-- <script src="https://rawgit.com/tpreusse/radar-chart-d3/master/src/radar-chart.js"></script> -->
 <style>
@@ -125,6 +134,35 @@ text{
     font-weight: 500;
     color: #081F2C;
 }
+
+.background path {
+  fill: none;
+  stroke: #ddd;
+  shape-rendering: crispEdges;
+}
+
+.foreground path {
+    fill: none;
+    stroke: steelblue;
+}
+
+.brush .extent {
+    fill-opacity: .3;
+    stroke: #fff;
+    shape-rendering: crispEdges;
+}
+
+.axis line,
+.axis path {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+    cursor: move;
+}
 </style>
   
 <body>
@@ -161,10 +199,12 @@ text{
             </div>
         </div>
         <div class="row">
-            <div class="col-md-8" id="parallel"></div>
+            <div class="col-md-8" id="parallel">
+                <!-- Parallel Coordinates -->
+            </div>
             <div class="col-md-4" align="center"
             style="align-items: stretch;">
-                <label align="center" >Health Rank</label>
+                <label align="center" >Health Quality and Population Density</label>
                 <div id="country_info"></div>
             </div>
         </div>
@@ -172,6 +212,137 @@ text{
 
 </body>
 <script>
+
+$.post("/parallel", {}, function(data_received) {
+    console.log(data_received);
+    drawParallel(data_received);
+});
+
+function drawParallel(cars) {
+    var margin = {top: 30, right: 10, bottom: 10, left: 30},
+    width = 750 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+
+    var x = d3.scale.ordinal().rangePoints([0, width], 1),
+        y = {},
+        dragging = {};
+
+    var line = d3.svg.line(),
+        axis = d3.svg.axis().orient("left"),
+        background,
+        foreground;
+
+    var svg = d3.select("#parallel").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+    
+    // Extract the list of dimensions and create a scale for each.
+    x.domain(dimensions = d3.keys(cars[0]).filter(function(d) {
+        return d != "name" && (y[d] = d3.scale.linear()
+            .domain(d3.extent(cars, function(p) { return +p[d]; }))
+            .range([height, 0]));
+    }));
+    console.log(dimensions);
+
+    // Add grey background lines for context.
+    background = svg.append("g")
+        .attr("class", "background")
+        .selectAll("path")
+        .data(cars)
+        .enter().append("path")
+        .attr("d", path);
+
+    // Add blue foreground lines for focus.
+    foreground = svg.append("g")
+        .attr("class", "foreground")
+        .selectAll("path")
+        .data(cars)
+        .enter().append("path")
+        .attr("d", path);
+
+    // Add a group element for each dimension.
+    var g = svg.selectAll(".dimension")
+        .data(dimensions)
+        .enter().append("g")
+        .attr("class", "dimension")
+        .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+        .call(d3.behavior.drag()
+            .origin(function(d) { return {x: x(d)}; })
+            .on("dragstart", function(d) {
+                dragging[d] = x(d);
+                background.attr("visibility", "hidden");
+            })
+            .on("drag", function(d) {
+                dragging[d] = Math.min(width, Math.max(0, d3.event.x));
+                foreground.attr("d", path);
+                dimensions.sort(function(a, b) { return position(a) - position(b); });
+                x.domain(dimensions);
+                g.attr("transform", function(d) { return "translate(" + position(d) + ")"; })
+            })
+            .on("dragend", function(d) {
+            delete dragging[d];
+            transition(d3.select(this)).attr("transform", "translate(" + x(d) + ")");
+            transition(foreground).attr("d", path);
+            background
+                .attr("d", path)
+                .transition()
+                .delay(500)
+                .duration(0)
+                .attr("visibility", null);
+            }));
+
+    // Add an axis and title.
+    g.append("g")
+        .attr("class", "axis")
+        .each(function(d) { d3.select(this).call(axis.scale(y[d])); })
+        .append("text")
+        .style("text-anchor", "middle")
+        .attr("y", -9)
+        .text(function(d) { return d; });
+
+    // Add and store a brush for each axis.
+    g.append("g")
+        .attr("class", "brush")
+        .each(function(d) {
+            d3.select(this).call(y[d].brush = d3.svg.brush().y(y[d]).on("brushstart", brushstart).on("brush", brush));
+        })
+        .selectAll("rect")
+        .attr("x", -8)
+        .attr("width", 16);
+
+    function position(d) {
+        var v = dragging[d];
+        return v == null ? x(d) : v;
+    }
+
+    function transition(g) {
+        return g.transition().duration(500);
+    }
+
+    // Returns the path for a given data point.
+    function path(d) {
+        return line(dimensions.map(function(p) { return [position(p), y[p](d[p])]; }));
+    }
+
+    function brushstart() {
+        d3.event.sourceEvent.stopPropagation();
+    }
+
+    // Handles a brush event, toggling the display of foreground lines.
+    function brush() {
+        var actives = dimensions.filter(function(p) { return !y[p].brush.empty(); }),
+            extents = actives.map(function(p) { return y[p].brush.extent(); });
+        foreground.style("display", function(d) {
+            return actives.every(function(p, i) {
+            return extents[i][0] <= d[p] && d[p] <= extents[i][1];
+            }) ? null : "none";
+        });
+    }
+
+}
 var format = d3.format(",");
 
 var data = {{ data.data | safe }};
@@ -231,7 +402,8 @@ function ready(data, value, size, dom) {
     // console.log(data);
     // console.log(data.features);
 
-    var color = d3.scaleThreshold()
+    // var color = d3.scaleThreshold()
+    var color = d3.scale.threshold()
         .domain(dom)
         .range(["rgb(247,251,255)", "rgb(222,235,247)", "rgb(198,219,239)", "rgb(158,202,225)", "rgb(107,174,214)", "rgb(66,146,198)","rgb(33,113,181)","rgb(8,81,156)","rgb(8,48,107)","rgb(3,19,43)"]);
     svg.append("g")
@@ -293,7 +465,8 @@ function ready1(data, value, size, dom) {
     // console.log(data);
     // console.log(data.features);
 
-    var color = d3.scaleThreshold()
+    // var color = d3.scaleThreshold()
+    var color = d3.scale.threshold()
         .domain(dom)
         .range(["rgb(247,251,255)", "rgb(222,235,247)", "rgb(198,219,239)", "rgb(158,202,225)", "rgb(107,174,214)", "rgb(66,146,198)","rgb(33,113,181)","rgb(8,81,156)","rgb(8,48,107)","rgb(3,19,43)"]);
     
@@ -356,7 +529,8 @@ function ready2(data, value, size, dom) {
     // console.log(population);
     // console.log(data);
     // console.log(data.features);
-    var color = d3.scaleThreshold()
+    // var color = d3.scaleThreshold()
+    var color = d3.scale.threshold()
         .domain(dom)
         .range(["rgb(247,251,255)", "rgb(222,235,247)", "rgb(198,219,239)", "rgb(158,202,225)", "rgb(107,174,214)", "rgb(66,146,198)","rgb(33,113,181)","rgb(8,81,156)","rgb(8,48,107)","rgb(3,19,43)"]);
     
@@ -407,7 +581,7 @@ function update() {
     var new_variable = d3.select("#stats").property("value");
     if ( new_variable != variable ) {
         variable = new_variable;
-        svg.selectAll("*").remove().exit();
+        svg.selectAll("*").remove();
         $.post("", {"data": variable}, function(data_received) {
             value = JSON.parse(data_received.value);
             size = eval(data_received.size);
@@ -429,18 +603,19 @@ function update() {
 var optwidth = 250;
 var optheight = 250;
 
-var marginLat	= {top: 20, right: 10, bottom: 50, left: 60},
+var marginLat	= {top: 20, right: 10, bottom: 50, left: 70},
     widthLat	= optwidth - marginLat.left - marginLat.right,
     heightLat	= optheight - marginLat.top - marginLat.bottom;
 
-var svg1 = d3.select("#map_lat1")
-  .append("svg")
-    .attr("width", widthLat + marginLat.left + marginLat.right)
-    .attr("height", heightLat + marginLat.top + marginLat.bottom)
-  .append("g")
-    .attr("transform",
-          "translate(" + marginLat.left + "," + marginLat.top + ")");
 
+
+var svg1 = d3.select("#map_lat1")
+    .append("svg")
+        .attr("width", widthLat + marginLat.left + marginLat.right)
+        .attr("height", heightLat + marginLat.top + marginLat.bottom)
+    .append("g")
+        .attr("transform",
+            "translate(" + marginLat.left + "," + marginLat.top + ")");
 
 function update1(country) {
     $.post("/country", {"country":country}, function(data_received) {
@@ -455,9 +630,10 @@ function update1(country) {
         } else if ( variable == 'Recovered' ) {
             dataset = recovered;
         }
-        svg1.selectAll("*").remove().exit();
+        svg1.selectAll("*").remove();
         dataset.forEach(function(d) {
-            d.date = d3.timeParse("%Y-%m-%d")(d.date);
+            d.date = d3.time.format("%Y-%m-%d").parse(d.date);
+            // d.date = d3.timeParse("%Y-%m-%d")(d.date);
             d.value = +d.n;
         });
         drawTimeSeries(dataset);
@@ -472,13 +648,13 @@ function update2(country) {
         for ( var k in data_received ) {
             if ( k == "pop_density" ) {
                 data.push({
-                    "area":k,
-                    "value":data_received[k]*2000
+                    "axis":k,
+                    "value":data_received[k] * 20 // scaling for better viz
                 });
             } else {
                 data.push({
-                    "area":k,
-                    "value":data_received[k]*100
+                    "axis":k,
+                    "value":data_received[k]
                 });
             }
         }
@@ -494,7 +670,7 @@ function radarChart(d, country) {
         h: optheight,
         maxValue: 1,
         levels: 5,
-        ExtraWidthX: 100
+        ExtraWidthX: 200
     }
     var data = Array(1);
     data[0] = d
@@ -504,32 +680,38 @@ function radarChart(d, country) {
 
 function drawTimeSeries(data) {
     // console.log(data);
-
     // Add X axis --> it is a date format
-    var x = d3.scaleTime()
+    // var x = d3.scaleTime()
+    var x = d3.time.scale()
         .domain(d3.extent(data, function(d) { return d.date; }))
         .range([ 0, widthLat ]);
+    
     svg1.append("g")
         .attr("transform", "translate(0," + heightLat + ")")
-        .call(d3.axisBottom().scale(x).ticks(5));
-
+        // .call(d3.axisBottom().scale(x).ticks(5));
+        .call( d3.svg.axis().scale(x).ticks(3).orient("bottom"));
     // Add Y axis
-    var y = d3.scaleLinear()
+    // var y = d3.scaleLinear()
+    var y = d3.scale.linear()
         .domain([0, d3.max(data, function(d) { return +d.value; })])
         .range([ heightLat, 0 ]);
     svg1.append("g")
-        .call(d3.axisLeft(y));x
+        // .call(d3.axisLeft(y));
+        .call(d3.svg.axis().scale(y).ticks(10).orient("left"));
 
     // Add the line
     svg1.append("path")
         .datum(data)
         .attr("fill", "none")
         .attr("stroke", "steelblue")
-        .attr("stroke-width", 1.5)
-        .attr("d", d3.line()
+        .attr("stroke-width", 4)
+        // .attr("d", d3.line()
+        .attr("d", d3.svg.line()
             .x(function(d) { return x(d.date) })
             .y(function(d) { return y(d.value) })
         )
 }
+
+
 </script>
 </html>

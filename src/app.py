@@ -83,6 +83,21 @@ def all_info():
         data[k] = 1.0 * data[k] / maximums[k]
     return jsonify(data)
 
+@app.route("/parallel", methods=["POST"])
+def parallel():
+    global all_data
+    # process
+    l = all_data.T.to_dict()
+    ans = []
+    for k in l:
+        d = l[k]
+        d['name'] = k
+        ans.append(d)
+    
+    return jsonify(ans)
+
+
+
 
 if __name__ == "__main__":
     confirmed = pd.read_csv('data/world_confirmed.csv')
@@ -101,4 +116,5 @@ if __name__ == "__main__":
     )
     with open('data/world_countries.json') as f:
         data = json.load(f)
+    all_data = pd.read_csv('data/all-info.csv', index_col=0)
     app.run(debug=True)
